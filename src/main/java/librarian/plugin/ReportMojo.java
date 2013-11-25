@@ -2,8 +2,8 @@ package librarian.plugin;
 
 import com.google.common.collect.Sets;
 import librarian.model.VersionInfo;
-import librarian.version.VersionInfoPersister;
-import librarian.version.impl.JsonVersionInfoPersister;
+import librarian.version.VersionInfoDao;
+import librarian.version.impl.JsonVersionInfoDao;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.metadata.ArtifactMetadataRetrievalException;
 import org.apache.maven.artifact.metadata.ArtifactMetadataSource;
@@ -22,8 +22,8 @@ import org.apache.maven.project.MavenProject;
 import java.util.List;
 import java.util.Set;
 
-@Mojo( name = "info", defaultPhase = LifecyclePhase.PROCESS_SOURCES )
-public class InfoMojo extends AbstractMojo {
+@Mojo( name = "report", defaultPhase = LifecyclePhase.PROCESS_SOURCES )
+public class ReportMojo extends AbstractMojo {
 	
     @Parameter(defaultValue = "${project}")
     private MavenProject project;
@@ -40,7 +40,7 @@ public class InfoMojo extends AbstractMojo {
     @Component
     private ArtifactMetadataSource metadataSource;
 
-    private VersionInfoPersister persister;
+    private VersionInfoDao dao;
 
     private final Log logger = getLog();
 
@@ -48,19 +48,21 @@ public class InfoMojo extends AbstractMojo {
 	public void execute() throws MojoExecutionException {
         // FIXME, this needs to be injected ...
         // needed because I can't find a hook that executes after properties are injected ... stupid plexus
-        persister = new JsonVersionInfoPersister(project);
+        dao = new JsonVersionInfoDao(project.getBasedir());
 
-    	final Set<Artifact> arts = project.getDependencyArtifacts();
+        final Set<Artifact> arts = project.getDependencyArtifacts();
         final Set<VersionInfo> artifactVersions = Sets.newHashSetWithExpectedSize(arts.size());
         for (Artifact artifact : arts) {
 			try {
 
 				final List<ArtifactVersion> versions = metadataSource.retrieveAvailableVersions(artifact, localRepository, remoteRepositories);
+                final String latestVersion = latest(versions).toString();
+
                 artifactVersions.add(
                     new VersionInfo.VersionInfoBuilder()
-                        .isLatest(artifact.getVersion().equals(latest(versions).toString()))
+                        .isLatest(artifact.getVersion().equals(latestVersion))
                         .setCurrent(artifact.getVersion())
-                        .setLatest(latest(versions).toString())
+                        .setLatest(latestVersion)
                         .setArtifactName(artifact.getId())
                         .build()
                 );
@@ -70,7 +72,7 @@ public class InfoMojo extends AbstractMojo {
 			}
 		}
 
-        persister.persist(artifactVersions);
+        dao.persist(artifactVersions);
 
         for (VersionInfo info : artifactVersions) {
             logger.info(info.toString());

@@ -10,6 +10,9 @@ import java.util.Set;
  * Date: 11/23/13
  * Time: 6:33 PM
  */
-public interface VersionInfoPersister {
+public interface VersionInfoDao {
+
+    Set<VersionInfo> read();
+
     void persist(Set<VersionInfo> infos);
 }
