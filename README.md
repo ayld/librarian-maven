@@ -20,7 +20,7 @@ containing the info.
 
 Used like this:
 
-`mvn librarian.plugin:librarian-maven-plugin:info`
+`mvn librarian.plugin:librarian-maven-plugin:report`
 
 I know its too long to type, will be shorter soon.
 
